@@ -78,6 +78,7 @@
       
       #Subset through a list
       gene.picks = c("MYOD1","MYOG","PAX3","PAX7","SOX8","SNAI2")
+      
       lapply(gene.picks, function(x) {
         #####
         gene.pick.long = subset(gene.long, gene.long$gene %in% x)
@@ -130,8 +131,9 @@
   #for small gene sets, manually select columns
   library(pheatmap)
   library(RColorBrewer)
-  gene.heated = data.frame(gene.effect$DepMap_ID, gene.effect$SOX8, gene.effect$PAX3, gene.effect$MYOD1, gene.effect$MYOG, gene.effect$MYCN)  ###this is completely manual and quite clunky
-    gene.heated[is.na(gene.heated)] <- 0
+  gene.heated = data.frame(gene.effect$DepMap_ID, gene.effect$PAX3, gene.effect$PGP, gene.effect$KDM5A, gene.effect$KDM3B, gene.effect$HDAC2)  ###this is completely manual and quite clunky
+  colnames(gene.heated) = gsub(x = colnames(gene.heated), pattern = "gene.effect.",replacement = "") 
+  gene.heated[is.na(gene.heated)] <- 0
     gene.heated.wmeta <- join(gene.heated, metadata.lookup, by = "DepMap_ID")
     gene.heated.wmeta <- subset(gene.heated.wmeta, gene.heated.wmeta$type.count > 2)
     gene.heated.matrix = as.matrix(gene.heated.wmeta[,c(2:(ncol(gene.heated.wmeta)-3))])
@@ -144,7 +146,7 @@
       gene.heated.type.matrix = as.matrix(gene.heated.type[,c(2:(ncol(gene.heated.type)))])
       row.names(gene.heated.type.matrix) = gene.heated.type$tumor_type
       breaksList = seq(-5, 5, by = 0.2)
-      pheatmap(gene.heated.type.matrix,scale='column',
+      pheatmap(gene.heated.type.matrix,scale='none',
                cluster_rows = T,  color = colorRampPalette(c("red", "white", "lightblue"))(50),
                main=paste(project.name," heatmap",sep=""))#breaks=breaksList
       
@@ -169,12 +171,12 @@
         gene.aggr.spread <- spread(gene.aggregated, tumor_type, mean_score)
         gene.aggr.spread$gene.mean<-rowMeans(gene.aggr.spread[,2:ncol(gene.aggr.spread)])
         gene.aggr.spread$FPRMS.v.mean = gene.aggr.spread$`FP Rhabdomyosarcoma` - gene.aggr.spread$gene.mean
-        gene.aggr.spread.top = subset(gene.aggr.spread, gene.aggr.spread$FPRMS.v.mean < (-0.5))
+        gene.aggr.spread.top = subset(gene.aggr.spread, gene.aggr.spread$FPRMS.v.mean < (-0.2))
         
         #heat the top!
         library(pheatmap)
         library(RColorBrewer)
-        gene.aggr.spread.top.matrix = as.matrix(gene.aggr.spread.top[,c(2:(ncol(gene.aggr.spread.top)-2))])
+        gene.aggr.spread.top.matrix = as.matrix(gene.aggr.spread.top[,c(2:(ncol(gene.aggr.spread.top)-3))])
         row.names(gene.aggr.spread.top.matrix) = gene.aggr.spread.top$gene
         breaksList = seq(-5, 5, by = 0.2)
         pheatmap(gene.aggr.spread.top.matrix,scale='row',cluster_rows = F,  color = colorRampPalette(c("red", "white", "lightblue"))(50),main=paste(project.name," heatmap",sep="")) #,breaks=breaksList
@@ -191,14 +193,14 @@
         geneset.folder = "K:/projects/ChIP_seq/RNA_DATA/RNA_projects/Genesets/Qlucore_format/"
         geneset.name = "GRYDER_RH4_CR_TFs_CRISPRTop"
         geneset = read.table(file = paste(geneset.folder,geneset.name,".genelist.txt",sep=""),sep="\t",header = F)
-        
+        geneset = as.character(geneset$V1)
         #give rank
         gene.aggr.spread = gene.aggr.spread[order(gene.aggr.spread$`FP Rhabdomyosarcoma`), ]
         gene.aggr.spread$rank = as.numeric(factor(gene.aggr.spread$`FP Rhabdomyosarcoma`,levels=unique(gene.aggr.spread$`FP Rhabdomyosarcoma`))) 
             
         #make subset
-        gene.aggr.spread.geneset = subset(gene.aggr.spread, gene.aggr.spread$gene %in% geneset$V1)
-        gene.aggr.spread$geneset = gene.aggr.spread$gene %in% geneset$V1
+        gene.aggr.spread.geneset = subset(gene.aggr.spread, gene.aggr.spread$gene %in% c(geneset))
+        gene.aggr.spread$geneset = gene.aggr.spread$gene %in% geneset
         
         #plots
         library(ggplot2)
@@ -215,4 +217,4 @@
         ggplot(gene.aggr.spread,aes(y=`FP Rhabdomyosarcoma`,x=factor(geneset)))+geom_boxplot(width=0.5,outlier.shape=NA,aes(fill=factor(geneset))) +theme_bw() +
           annotate("text", x = 1.5, y = 1, label = paste("p = ",geneset.p))+ggtitle(label = "Subtype score by geneset", subtitle = geneset.name)
         
-        
+ 
